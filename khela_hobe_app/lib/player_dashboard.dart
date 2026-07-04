@@ -1,8 +1,7 @@
-import 'dart:convert';
+﻿import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 
 class PlayerDashboard extends StatefulWidget {
   const PlayerDashboard({super.key});
@@ -12,238 +11,96 @@ class PlayerDashboard extends StatefulWidget {
 }
 
 class _PlayerDashboardState extends State<PlayerDashboard> {
-  int _selectedIndex = 0;
-  late String _playerName = 'Player';
-  late Future<List<dynamic>> _venuesFuture;
+  final ApiService _apiService = ApiService();
+  late Future<List<Map<String, dynamic>>> _venuesFuture;
+
+  static const Color _deepNavy = Color(0xFF38003C);
+  static const Color _neonGreen = Color(0xFF00FF85);
+  static const Color _magenta = Color(0xFFEA047E);
 
   @override
   void initState() {
     super.initState();
-    _venuesFuture = _fetchVenues();
-    _loadPlayerInfo();
+    _venuesFuture = _apiService.fetchVenues();
   }
 
-  Future<List<dynamic>> _fetchVenues() async {
-    final response = await http.get(Uri.parse('http://192.168.0.105:3000/api/venues'));
-    if (response.statusCode != 200) {
-      throw Exception('Failed to load venues');
-    }
-
-    final body = jsonDecode(response.body);
-    if (body is! List) {
-      throw Exception('Unexpected venue response format');
-    }
-
-    return body.cast<dynamic>();
-  }
-
-  Future<void> _loadPlayerInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _playerName = prefs.getString('user_name') ?? 'Player';
-    });
-  }
-
-  void _onNavBarTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  Future<void> _openMap(String url) async {
+    if (url.isEmpty) return;
+    if (await canLaunchUrlString(url)) {
+      await launchUrlString(url);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open map link.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _deepNavy,
       appBar: AppBar(
-        title: const Text('🏟️ KhelaHobe - Player'),
-        backgroundColor: Colors.green[700],
+        title: const Text('Premier Turf Showcase'),
+        backgroundColor: _deepNavy,
         elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String result) {
-              if (result == 'logout') {
-                _logout();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'profile',
-                child: Text('My Profile'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Text('Logout'),
-              ),
-            ],
-          ),
-        ],
+        centerTitle: true,
       ),
-      body: _buildContent(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onNavBarTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_on),
-            label: 'Browse Venues',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'My Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Booking History',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildBrowseVenues();
-      case 1:
-        return _buildMyBookings();
-      case 2:
-        return _buildBookingHistory();
-      default:
-        return _buildBrowseVenues();
-    }
-  }
-
-  Widget _buildBrowseVenues() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Welcome, $_playerName! 👋',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Search venues by location...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+            const Text(
+              'Dhaka Turf Gallery',
+              style: TextStyle(
+                color: _neonGreen,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 24),
-            const Text('Available Venues', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            FutureBuilder<List<dynamic>>(
-              future: _venuesFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.0),
-                    child: Text(
-                      'Unable to load venues. Please try again later.',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final venues = snapshot.data ?? [];
-                if (venues.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.0),
-                    child: Text(
-                      'No venues available at this time.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: venues.length,
-                  itemBuilder: (context, index) {
-                    final venue = venues[index] as Map<String, dynamic>;
-                    return _buildVenueCardFromData(venue);
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVenueCardFromData(Map<String, dynamic> venue) {
-    final title = venue['name']?.toString() ?? 'Venue';
-    final venueType = venue['type']?.toString() ?? 'Venue';
-    final location = venue['location']?.toString() ?? 'Unknown location';
-    final price = venue['price_per_hour'] != null
-        ? '₹${venue['price_per_hour']}/hour'
-        : 'Price unavailable';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$title - $venueType',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Chip(
-                  label: const Text('Active'),
-                  backgroundColor: Colors.green[200],
-                ),
-              ],
-            ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(location),
-                ),
-              ],
+            const Text(
+              'Elite grounds, premium experience, swipe to explore.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(price, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green)),
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Booking feature coming soon!')),
+            const SizedBox(height: 20),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _venuesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator(color: _neonGreen));
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.error_outline, color: _magenta, size: 40),
+                          SizedBox(height: 12),
+                          Text('Unable to load turfs.', style: TextStyle(color: Colors.white70)),
+                        ],
+                      ),
                     );
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Book Now'),
-                ),
-              ],
+                  }
+
+                  final venues = snapshot.data ?? [];
+                  if (venues.isEmpty) {
+                    return const Center(
+                      child: Text('No turf listings are available right now.', style: TextStyle(color: Colors.white70)),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: venues.length,
+                    physics: const BouncingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return _buildVenueCard(venues[index]);
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -251,69 +108,93 @@ class _PlayerDashboardState extends State<PlayerDashboard> {
     );
   }
 
-  Widget _buildMyBookings() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your Active Bookings',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 24),
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
+  Widget _buildVenueCard(Map<String, dynamic> venue) {
+    final title = venue['title']?.toString() ?? 'Unknown Turf';
+    final description = venue['description']?.toString() ?? '';
+    final address = venue['address']?.toString() ?? 'Location unavailable';
+    final hourlyRate = venue['hourly_rate']?.toString() ?? '0';
+    final imageUrl = venue['image_url']?.toString() ?? '';
+    final mapLink = venue['map_link']?.toString() ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18.0),
+      child: Card(
+        color: const Color(0xFF2A0735),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 8,
+        shadowColor: _magenta.withOpacity(0.35),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (imageUrl.isNotEmpty)
+                SizedBox(
+                  height: 200,
+                  child: Image.asset(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.black12,
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, color: Colors.white30, size: 48),
+                      ),
+                    ),
+                  ),
+                ),
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF00FF85), Color(0xFFEA047E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: [0.0, 1.0],
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Arena 1 - Turf', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    const Text('Date: June 15, 2026'),
-                    const Text('Time: 5:00 PM - 7:00 PM'),
-                    const Text('Price: ₹1000', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                    Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 6),
+                    Text(description, style: const TextStyle(color: Colors.white70, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 12),
-                    Chip(
-                      label: const Text('Confirmed'),
-                      backgroundColor: Colors.blue[200],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('৳$hourlyRate / hour', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Text('Premium', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () => _openMap(mapLink),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              address,
+                              style: const TextStyle(color: Colors.white, decoration: TextDecoration.underline),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const Text('No more bookings', style: TextStyle(color: Colors.grey, fontSize: 14)),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBookingHistory() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.history, size: 48, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'Booking History',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text('Your past bookings will appear here'),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _selectedIndex = 0);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Browse Venues'),
-          ),
-        ],
       ),
     );
   }

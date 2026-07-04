@@ -1,105 +1,114 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const mysql = require('mysql');
 
-// Import middleware
-const errorHandler = require('./middleware/errorHandler');
-
-// Import routes
-const authRoutes = require('./routes/auth');
-const bookingsRoutes = require('./routes/bookings');
-const investmentsRoutes = require('./routes/investments');
-
-// Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 
-// ============================================================================
-// MIDDLEWARE
-// ============================================================================
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'khelahobe',
+});
 
-// CORS setup
-app.use(cors({
-  origin: process.env.API_URL || 'http://localhost:3000',
-  credentials: true
-}));
+db.connect((err) => {
+  if (err) {
+    console.error('❌ MySQL connection failed:', err.message);
+    process.exit(1);
+  }
+  console.log('✅ Connected to MySQL database khelahobe');
+});
 
-// Body parser middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
-
-// ============================================================================
-// ROUTES
-// ============================================================================
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'KhelaHobe API is running',
-    timestamp: new Date().toISOString()
+app.get('/api/venues', (req, res) => {
+  const sql = 'SELECT * FROM venues ORDER BY id DESC';
+  db.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Unable to fetch venues', error: err.message });
+    }
+    res.json(results);
   });
 });
 
-// API endpoints
-app.use('/api/auth', authRoutes);
-app.use('/api/bookings', bookingsRoutes);
-app.use('/api/investments', investmentsRoutes);
+app.post('/api/venues', (req, res) => {
+  const { landowner_id, title, description, address, hourly_rate, image_url, map_link } = req.body;
 
-// 404 handler
+  if (!title || !address || !hourly_rate || !image_url || !map_link) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields. Please provide title, address, hourly_rate, image_url and map_link.',
+    });
+  }
+
+  const sql = `INSERT INTO venues (landowner_id, title, description, address, hourly_rate, image_url, map_link)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+  const values = [landowner_id || 1, title, description || '', address, hourly_rate, image_url, map_link];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Unable to create venue', error: err.message });
+    }
+    res.status(201).json({
+      success: true,
+      message: 'Venue created successfully',
+      venue: { id: result.insertId, landowner_id: landowner_id || 1, title, description, address, hourly_rate, image_url, map_link },
+    });
+  });
+});
+
+app.put('/api/venues/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const { landowner_id, title, description, address, hourly_rate, image_url, map_link } = req.body;
+
+  const fields = { landowner_id, title, description, address, hourly_rate, image_url, map_link };
+  const updates = Object.entries(fields)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key]) => `${key} = ?`);
+
+  if (!updates.length) {
+    return res.status(400).json({ success: false, message: 'No fields provided to update.' });
+  }
+
+  const values = Object.entries(fields)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([, value]) => value);
+
+  const sql = `UPDATE venues SET ${updates.join(', ')} WHERE id = ?`;
+  values.push(id);
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Unable to update venue', error: err.message });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Venue not found' });
+    }
+    res.json({ success: true, message: 'Venue updated successfully' });
+  });
+});
+
+app.delete('/api/venues/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const sql = 'DELETE FROM venues WHERE id = ?';
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Unable to delete venue', error: err.message });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Venue not found' });
+    }
+    res.json({ success: true, message: 'Venue deleted successfully' });
+  });
+});
+
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
-
-// ============================================================================
-// ERROR HANDLING
-// ============================================================================
-
-// Global error handler
-app.use(errorHandler);
-
-// ============================================================================
-// START SERVER
-// ============================================================================
 
 app.listen(PORT, () => {
-  console.log(`
-╔════════════════════════════════════════════════════════════╗
-║                                                            ║
-║          🏟️  KhelaHobe API Server Started! 🏟️            ║
-║                                                            ║
-║         Server: http://localhost:${PORT}                     ║
-║         Environment: ${process.env.NODE_ENV || 'development'}                    ║
-║                                                            ║
-╚════════════════════════════════════════════════════════════╝
-  `);
-  console.log('📝 API Endpoints:');
-  console.log('   POST   /api/auth/register');
-  console.log('   POST   /api/auth/login');
-  console.log('   GET    /api/auth/profile');
-  console.log('   GET    /api/bookings/venue/:venueId');
-  console.log('   GET    /api/bookings/my-bookings');
-  console.log('   POST   /api/bookings');
-  console.log('   PATCH  /api/bookings/:bookingId/status');
-  console.log('   DELETE /api/bookings/:bookingId');
-  console.log('   GET    /api/investments/projects');
-  console.log('   GET    /api/investments/projects/:projectId');
-  console.log('   GET    /api/investments/my-investments');
-  console.log('   POST   /api/investments');
-  console.log('   GET    /api/investments/projects/:projectId/progress');
-});
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n👋 Server shutting down gracefully...');
-  process.exit(0);
+  console.log(`KhelaHobe server is running on http://localhost:${PORT}`);
 });

@@ -1,16 +1,20 @@
 const express = require('express');
+const cors = require('cors');
 const pool = require('./db');
 const authController = require('./backend/authController');
+
+const express = require('express');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authController);
 
 app.get('/api/venues', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, type, location, price_per_hour FROM venues LIMIT 10');
+    const [rows] = await pool.query('SELECT id, title AS name, type, location, price_per_hour FROM venues ORDER BY id DESC LIMIT 10');
     if (rows && rows.length > 0) {
       return res.json(rows);
     }
@@ -41,6 +45,35 @@ app.get('/api/venues', async (req, res) => {
       location: 'Sylhet',
     },
   ]);
+});
+
+app.post('/api/venues', async (req, res) => {
+  const { landowner_id, title, description, address, hourly_rate, image_url, map_link } = req.body;
+
+  if (!title || !address || hourly_rate == null) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields. Please provide title, address and hourly_rate.',
+    });
+  }
+
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO venues (landowner_id, title, description, address, hourly_rate, image_url, map_link)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [landowner_id || 1, title, description || '', address, hourly_rate, image_url || '', map_link || '']
+    );
+
+    const insertId = result.insertId || (result && result.affectedRows ? result.insertId : null);
+    return res.status(201).json({
+      success: true,
+      message: 'Venue created successfully',
+      venue: { id: insertId, landowner_id: landowner_id || 1, title, description, address, hourly_rate, image_url, map_link },
+    });
+  } catch (err) {
+    console.error('Create venue error:', err.message || err);
+    return res.status(500).json({ success: false, message: 'Unable to create venue', error: err.message });
+  }
 });
 
 app.put('/api/venues/:id', async (req, res) => {
@@ -109,6 +142,11 @@ app.get('/', async (req, res) => {
   }
 });
 
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
+});
+
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
+});
 });

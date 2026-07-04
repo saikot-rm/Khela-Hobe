@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import 'services/api_service.dart';
 
@@ -12,37 +12,35 @@ class PlayerDashboard extends StatefulWidget {
 }
 
 class _PlayerDashboardState extends State<PlayerDashboard> {
+  final ApiService _api_service = ApiService();
+  final ApiService _apiService = ApiService();
   int _selectedIndex = 0;
   late String _playerName = 'Player';
-  late Future<List<dynamic>> _venuesFuture;
+  late Future<List<Map<String, dynamic>>> _venuesFuture;
   final _searchController = TextEditingController();
+
+  static const Color _deepNavy = Color(0xFF38003C);
+  static const Color _neonGreen = Color(0xFF00FF85);
+  static const Color _magenta = Color(0xFFEA047E);
 
   @override
   void initState() {
     super.initState();
-    _venuesFuture = ApiService().fetchVenues();
+    _venuesFuture = _apiService.fetchVenues();
     _loadPlayerInfo();
   }
 
-  Future<void> _loadPlayerInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _playerName = prefs.getString('user_name') ?? 'Player';
-    });
+  Future<void> _openMap(String url) async {
+    if (url.isEmpty) return;
+    if (await canLaunchUrlString(url)) {
+      await launchUrlString(url);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open map link.')),
+      );
+    }
   }
-
-  void _onNavBarTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     }
   }
 
@@ -65,29 +63,12 @@ class _PlayerDashboardState extends State<PlayerDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _deepNavy,
       appBar: AppBar(
-        title: const Text('KhelaHobe Player'),
-        centerTitle: false,
+        title: const Text('Premier Turf Showcase'),
+        backgroundColor: _deepNavy,
         elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (String result) {
-              if (result == 'logout') {
-                _logout();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'profile',
-                child: Text('My Profile'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Text('Logout'),
-              ),
-            ],
-          ),
-        ],
+        centerTitle: true,
       ),
       body: _buildContent(),
       bottomNavigationBar: BottomNavigationBar(
@@ -198,77 +179,6 @@ class _PlayerDashboardState extends State<PlayerDashboard> {
       ),
     );
   }
-
-  Widget _buildVenueCardFromData(Map<String, dynamic> venue) {
-    final title = (venue['title'] ?? venue['name'] ?? venue['venue_name'] ?? 'Turf Location').toString();
-    final locationType = (venue['location_type'] ?? venue['type'] ?? venue['locationType'] ?? 'Turf').toString();
-    final priceValue = venue['hourly_price'] ?? venue['price_per_hour'] ?? venue['price'];
-    final price = priceValue != null ? '৳$priceValue/hr' : 'Price unavailable';
-    final address = (venue['location'] ?? venue['address'] ?? 'Premium location').toString();
-    final mapLink = (venue['map_link'] ?? '').toString();
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4A144D), Color(0xFF360D3A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(title, style: const TextStyle(fontFamily: 'Oswald', fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00FF85))),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEA047E),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(price, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: mapLink.isNotEmpty ? () => _openMap(mapLink) : null,
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on, color: Color(0xFF00FFFF), size: 18),
-                  const SizedBox(width: 6),
-                  Expanded(child: Text(address, style: const TextStyle(color: Color(0xFFB8C1D9)))),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('Type: $locationType', style: const TextStyle(color: Color(0xFFE9ECF8))),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.sports_soccer),
-                  label: const Text('Book Turf'),
-                ),
-                const SizedBox(width: 8),
-                if (mapLink.isNotEmpty)
-                  ElevatedButton.icon(
-                    onPressed: () => _openMap(mapLink),
-                    icon: const Icon(Icons.map),
-                    label: const Text('Open Map'),
-                  ),
-              ],
             ),
           ],
         ),
@@ -276,69 +186,100 @@ class _PlayerDashboardState extends State<PlayerDashboard> {
     );
   }
 
-  Widget _buildMyBookings() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your Active Bookings',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 24),
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
+  Widget _buildVenueCard(Map<String, dynamic> venue) {
+    final title = venue['title']?.toString() ?? 'Unknown Turf';
+    final description = venue['description']?.toString() ?? '';
+    final address = venue['address']?.toString() ?? 'Location unavailable';
+    final hourlyRate = venue['hourly_rate']?.toString() ?? '0';
+    final imageUrl = venue['image_url']?.toString() ?? '';
+    final mapLink = venue['map_link']?.toString() ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18.0),
+      child: Card(
+        color: const Color(0xFF2A0735),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 8,
+        shadowColor: _magenta.withOpacity(0.35),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (imageUrl.isNotEmpty)
+                SizedBox(
+                  height: 200,
+                  child: Image.asset(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.black12,
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, color: Colors.white30, size: 48),
+                      ),
+                    ),
+                  ),
+                ),
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF00FF85), Color(0xFFEA047E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: [0.0, 1.0],
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Arena 1 - Turf', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    const Text('Date: June 15, 2026'),
-                    const Text('Time: 5:00 PM - 7:00 PM'),
-                    const Text('Price: ৳1000', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                    Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 6),
+                    Text((venue['description'] ?? '').toString(), style: const TextStyle(color: Colors.white70, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 12),
-                    Chip(
-                      label: const Text('Confirmed'),
-                      backgroundColor: Colors.blue[200],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('৳$hourlyRate / hour', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Text('Premium', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () => _openMap(mapLink),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              address,
+                              style: const TextStyle(color: Colors.white, decoration: TextDecoration.underline),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => _openMap(mapLink),
+                      icon: const Icon(Icons.map_outlined, color: Colors.white, size: 18),
+                      label: const Text('Open in Google Maps', style: TextStyle(color: Colors.white)),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const Text('No more bookings', style: TextStyle(color: Colors.grey, fontSize: 14)),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBookingHistory() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.history, size: 48, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            'Booking History',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text('Your past bookings will appear here'),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _selectedIndex = 0);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Browse Venues'),
-          ),
-        ],
       ),
     );
   }

@@ -1,5 +1,5 @@
 -- database_recovery.sql
--- Rebuild the khelahobe MySQL database and seed it with Dhaka turf venues.
+-- Rebuild the khelahobe MySQL database and seed it with the requested Dhaka turf venues.
 
 CREATE DATABASE IF NOT EXISTS khelahobe;
 USE khelahobe;
@@ -19,14 +19,19 @@ CREATE TABLE venues (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- If your existing venues table already exists, use the following instead of the CREATE TABLE above:
+-- ALTER TABLE venues
+--   ADD COLUMN IF NOT EXISTS image_url VARCHAR(255) NULL,
+--   ADD COLUMN IF NOT EXISTS map_link VARCHAR(500) NULL;
+
 INSERT INTO venues (landowner_id, title, description, address, hourly_rate, image_url, map_link) VALUES
-(1, 'ALPHA Sports Mohammadpur', 'Premium turf with floodlights and synthetic grass ideal for evening matches.', 'Mohammadpur, Dhaka 1207', 1500.00, 'assets/images/alpha_sports_mohammadpur.jpg', 'https://www.google.com/maps/place/ALPHA+Sports+Mohammadpur'),
-(1, 'Chatto Turf', 'Spacious 5-a-side ground with fast grass and spectator seating.', 'Kawran Bazar Rd, Dhaka 1207', 1300.00, 'assets/images/chatto_turf.jpg', 'https://www.google.com/maps/place/Chatto+Turf'),
-(2, 'Courtside 100ft', 'All-weather turf with pro-level goal posts and lounge area.', 'Dhanmondi, Dhaka 1209', 1700.00, 'assets/images/courtside_100ft.jpg', 'https://www.google.com/maps/place/Courtside+100ft'),
-(2, 'Dhaka Metroplex 300ft', 'Large sports complex with high-quality turf and training lights.', 'Mirpur Road, Dhaka 1216', 2200.00, 'assets/images/dhaka_metroplex_300ft.jpg', 'https://www.google.com/maps/place/Dhaka+Metroplex+300ft'),
-(3, 'JAFF Sports Field', 'Popular Friday evening turf with great turf quality and booking support.', 'Banani, Dhaka 1213', 1800.00, 'assets/images/jaff_sports_field.jpg', 'https://www.google.com/maps/place/JAFF+Sports+Field'),
-(3, 'Bashundhara Turf', 'Indoor-style field for crisp passes and competitive games.', 'Bashundhara R/A, Dhaka 1229', 2400.00, 'assets/images/bashundhara_turf.jpg', 'https://www.google.com/maps/place/Bashundhara+Turf'),
-(4, 'Green Arena Mirpur', 'Premium venue close to Mirpur Stadium with modern amenities.', 'Mirpur 2, Dhaka 1216', 1950.00, 'assets/images/green_arena_mirpur.jpg', 'https://www.google.com/maps/place/Green+Arena+Mirpur'),
-(4, 'Dhanmondi Football Turf', 'Compact and fast surface designed for 7-a-side action.', 'Dhanmondi Lake Rd, Dhaka 1205', 1400.00, 'assets/images/dhanmondi_football_turf.jpg', 'https://www.google.com/maps/place/Dhanmondi+Football+Turf'),
-(5, 'Gulshan Elite Turf', 'Luxury turf venue with rooftop views and premium floodlighting.', 'Gulshan 2, Dhaka 1212', 2800.00, 'assets/images/gulshan_elite_turf.jpg', 'https://www.google.com/maps/place/Gulshan+Elite+Turf'),
-(5, 'New Market Sports Turf', 'Local favorite turf with affordable rates and friendly booking service.', 'New Market, Dhaka 1205', 1200.00, 'assets/images/new_market_sports_turf.jpg', 'https://www.google.com/maps/place/New+Market+Sports+Turf');
+(1, 'ALPHA Sports Mohammadpur', 'Premium turf with clean facilities and evening match lighting.', 'Mohammadpur, Dhaka', 1200.00, 'assets/images/ALPHA Sports- Mohammadpur.jpg', 'https://maps.google.com/?q=ALPHA+Sports+Mohammadpur+Dhaka'),
+(1, 'Chatto Turf', 'Comfortable turf with fast playing surface and easy access.', '2 No. Gate More, Chattogram', 1600.00, 'assets/images/chato turf.jpg', 'https://maps.google.com/?q=Chatto+Turf'),
+(1, 'Courtside 100ft', 'High-quality turf with a polished pitch and modern amenities.', '100ft Madani Avenue, Dhaka', 2500.00, 'assets/images/Courtside 100ft.jpg', 'https://maps.google.com/?q=Courtside+Madani+Avenue+Dhaka'),
+(1, 'Dhaka Metroplex 300ft', 'Spacious field ideal for larger groups and match-day events.', '300ft Road, Dhaka', 3500.00, 'assets/images/Dhaka Metroplex 300ft.jpg', 'https://maps.google.com/?q=Dhaka+Metroplex+300ft'),
+(1, 'DSF Dhanmondi', 'Popular turf in a central area with strong booking support.', 'Dhanmondi, Dhaka', 1500.00, 'assets/images/DSF Dhanmondi.jpg', 'https://maps.google.com/?q=DSF+Dhanmondi'),
+(1, 'JAFF', 'Well-known arena with excellent turf quality and easy access.', 'Bashundhara R/A, Dhaka', 3000.00, 'assets/images/JAFF.jpg', 'https://maps.google.com/?q=JAFF+Arena+Bashundhara+Dhaka'),
+(1, 'NDE Futsal Field', 'Great for casual and competitive play with a compact layout.', 'Bashundhara R/A, Dhaka', 2000.00, 'assets/images/NDE Futsal Field.jpg', 'https://maps.google.com/?q=NDE+Sports+Facility+Bashundhara'),
+(1, 'Sports Grill', 'Good choice for evening sessions with a lively sports atmosphere.', 'Tejgaon, Dhaka', 3500.00, 'assets/images/sports grill.jpg', 'https://maps.google.com/?q=Sports+Grill+Tejgaon+Dhaka'),
+(1, 'The Stadium', 'Modern turf venue with premium pitch quality and facilities.', 'Bashundhara R/A, Dhaka', 3000.00, 'assets/images/stadium.jpg', 'https://maps.google.com/?q=The+Stadium+Bashundhara+Dhaka'),
+(1, 'Turf Ground Uttara', 'Large turf setup with good access in the northern part of the city.', 'Sector 4, Uttara, Dhaka', 5300.00, 'assets/images/Turf Ground Uttara.jpg', 'https://maps.google.com/?q=Turf+Ground+Uttara+Dhaka');

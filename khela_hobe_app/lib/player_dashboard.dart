@@ -189,6 +189,13 @@ class _PlayerDashboardState extends State<PlayerDashboard> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => _openMap(mapLink),
+                      icon: const Icon(Icons.map_outlined, color: Colors.white, size: 18),
+                      label: const Text('Open in Google Maps', style: TextStyle(color: Colors.white)),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
+                    ),
                   ],
                 ),
               ),

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"c:\\\\Users\\\\rm saikot\\\\Documents\\\\GitHub\\\\Khela-Hobe\" ; node --check db\\.js ; node --check server\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

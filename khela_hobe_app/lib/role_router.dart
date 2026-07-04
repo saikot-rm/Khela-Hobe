@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
-import 'auth_provider.dart';
 import 'player_dashboard.dart';
 import 'landowner_dashboard.dart';
 import 'investor_dashboard.dart';
@@ -49,7 +47,7 @@ class _RoleRouterState extends State<RoleRouter> {
           return const LoginScreen();
       }
     } catch (e) {
-      print('Error determining route: $e');
+      debugPrint('Error determining route: $e');
       return const LoginScreen();
     }
   }

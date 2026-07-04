@@ -25,7 +25,7 @@ class AuthProvider extends ChangeNotifier {
       _isAuthenticated = _token != null && _userRole != null;
       notifyListeners();
     } catch (e) {
-      print('Error loading user data: $e');
+      debugPrint('Error loading user data: $e');
     }
   }
 
@@ -50,7 +50,7 @@ class AuthProvider extends ChangeNotifier {
       
       notifyListeners();
     } catch (e) {
-      print('Error saving user data: $e');
+      debugPrint('Error saving user data: $e');
     }
   }
 
@@ -67,7 +67,7 @@ class AuthProvider extends ChangeNotifier {
       
       notifyListeners();
     } catch (e) {
-      print('Error logging out: $e');
+      debugPrint('Error logging out: $e');
     }
   }
 

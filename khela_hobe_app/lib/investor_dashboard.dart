@@ -128,7 +128,7 @@ class _InvestorDashboardState extends State<InvestorDashboard> {
             ),
             const SizedBox(height: 12),
             Text(
-              '₹${_walletBalance.toStringAsFixed(2)}',
+              '৳${_walletBalance.toStringAsFixed(2)}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 32,
@@ -148,7 +148,7 @@ class _InvestorDashboardState extends State<InvestorDashboard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '+₹${_totalReturns.toStringAsFixed(2)}',
+                      '+৳${_totalReturns.toStringAsFixed(2)}',
                       style: const TextStyle(
                         color: Colors.lightGreen,
                         fontSize: 18,
@@ -237,11 +237,11 @@ class _InvestorDashboardState extends State<InvestorDashboard> {
       children: [
         const Text('Your Active Investments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _buildInvestmentCard('Arena Central - Turf Expansion', '₹100,000', '8.5%', 0.65),
+        _buildInvestmentCard('Arena Central - Turf Expansion', '৳100,000', '8.5%', 0.65),
         const SizedBox(height: 12),
-        _buildInvestmentCard('Indoor Sports Complex', '₹75,000', '6.2%', 0.45),
+        _buildInvestmentCard('Indoor Sports Complex', '৳75,000', '6.2%', 0.45),
         const SizedBox(height: 12),
-        _buildInvestmentCard('Picnic Ground Development', '₹50,000', '5.8%', 0.30),
+        _buildInvestmentCard('Picnic Ground Development', '৳50,000', '5.8%', 0.30),
       ],
     );
   }
@@ -307,9 +307,9 @@ class _InvestorDashboardState extends State<InvestorDashboard> {
           ],
         ),
         const SizedBox(height: 12),
-        _buildListingCard('Community Sports Center', '₹500,000 target', '12% expected ROI', 'Funding'),
+        _buildListingCard('Community Sports Center', '৳500,000 target', '12% expected ROI', 'Funding'),
         const SizedBox(height: 12),
-        _buildListingCard('Rooftop Turf Project', '₹300,000 target', '9.5% expected ROI', 'Funding'),
+        _buildListingCard('Rooftop Turf Project', '৳300,000 target', '9.5% expected ROI', 'Funding'),
       ],
     );
   }
